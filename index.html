@@ -1,0 +1,1096 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RoB 2 Workbench — Cochrane Risk of Bias Assessment</title>
+<style>
+/* ---------- Design tokens ---------- */
+:root{
+  --bg:#F6F8F9; --surface:#FFFFFF; --surface2:#EEF2F4; --surface3:#E4EAED;
+  --ink:#1C272E; --muted:#5A6B75; --faint:#8195A0; --line:#D8E0E4; --line-strong:#B9C6CC;
+  --accent:#146C74; --accent-ink:#0E565D; --accent-soft:#DCEDEE;
+  --low:#2E8540; --low-bg:#E3F1E5; --low-line:#9CCBA6;
+  --some:#8A6402; --some-bg:#FBF1D3; --some-line:#DFC26A;
+  --high:#BE3A3F; --high-bg:#F9E3E4; --high-line:#E0A3A6;
+  --ni:#5E707A; --ni-bg:#E8EDF0; --ni-line:#BECAD1;
+  --chip-on:#1C272E; --chip-on-ink:#FFFFFF;
+  --shadow:0 1px 2px rgba(28,39,46,.06), 0 4px 14px rgba(28,39,46,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10171B; --surface:#182228; --surface2:#1F2B32; --surface3:#26333B;
+    --ink:#E6EDF1; --muted:#96A8B2; --faint:#71838D; --line:#2C3A42; --line-strong:#3E505A;
+    --accent:#45B3BC; --accent-ink:#7ED0D7; --accent-soft:#173A3E;
+    --low:#79C98E; --low-bg:#1C3424; --low-line:#31593D;
+    --some:#E2BA55; --some-bg:#382E12; --some-line:#5D4E1E;
+    --high:#E57C80; --high-bg:#3C2123; --high-line:#65363A;
+    --ni:#9AACB6; --ni-bg:#243139; --ni-line:#3A4C55;
+    --chip-on:#E6EDF1; --chip-on-ink:#10171B;
+    --shadow:0 1px 2px rgba(0,0,0,.35), 0 4px 14px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10171B; --surface:#182228; --surface2:#1F2B32; --surface3:#26333B;
+  --ink:#E6EDF1; --muted:#96A8B2; --faint:#71838D; --line:#2C3A42; --line-strong:#3E505A;
+  --accent:#45B3BC; --accent-ink:#7ED0D7; --accent-soft:#173A3E;
+  --low:#79C98E; --low-bg:#1C3424; --low-line:#31593D;
+  --some:#E2BA55; --some-bg:#382E12; --some-line:#5D4E1E;
+  --high:#E57C80; --high-bg:#3C2123; --high-line:#65363A;
+  --ni:#9AACB6; --ni-bg:#243139; --ni-line:#3A4C55;
+  --chip-on:#E6EDF1; --chip-on-ink:#10171B;
+  --shadow:0 1px 2px rgba(0,0,0,.35), 0 4px 14px rgba(0,0,0,.25);
+}
+
+/* ---------- Base ---------- */
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:15px/1.55 system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.serif{font-family:Charter, "Iowan Old Style", "Palatino Linotype", Georgia, serif}
+.mono{font-family:ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-variant-numeric:tabular-nums}
+h1,h2,h3{margin:0; text-wrap:balance}
+p{margin:.4em 0}
+a{color:var(--accent-ink)}
+button{font:inherit; cursor:pointer}
+input,select,textarea{
+  font:inherit; color:var(--ink); background:var(--surface);
+  border:1px solid var(--line-strong); border-radius:6px; padding:7px 9px; width:100%;
+}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{
+  outline:2px solid var(--accent); outline-offset:1px;
+}
+textarea{resize:vertical; min-height:56px}
+label{font-size:12.5px; font-weight:600; color:var(--muted); letter-spacing:.02em}
+
+/* ---------- Shell ---------- */
+.shell{max-width:1240px; margin:0 auto; padding:0 20px 80px}
+.masthead{
+  display:flex; flex-wrap:wrap; gap:14px 24px; align-items:flex-end; justify-content:space-between;
+  padding:26px 0 16px; border-bottom:2px solid var(--ink); margin-bottom:20px;
+}
+.masthead .kicker{font-size:11.5px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--accent-ink); margin-bottom:4px}
+.masthead h1{font-size:30px; line-height:1.15; font-weight:700}
+.masthead .sub{color:var(--muted); font-size:13.5px; max-width:640px; margin-top:6px}
+.toolbar{display:flex; gap:8px; flex-wrap:wrap}
+.btn{
+  border:1px solid var(--line-strong); background:var(--surface); color:var(--ink);
+  border-radius:7px; padding:8px 13px; font-size:13.5px; font-weight:600;
+}
+.btn:hover{background:var(--surface2)}
+.btn.primary{background:var(--accent); border-color:var(--accent); color:#fff}
+:root[data-theme="dark"] .btn.primary{color:#0C1417}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .btn.primary{color:#0C1417} }
+.btn.primary:hover{filter:brightness(1.06)}
+
+.layout{display:grid; grid-template-columns:230px minmax(0,1fr); gap:24px; align-items:start}
+@media (max-width:900px){ .layout{grid-template-columns:1fr} .rail{position:static !important; order:-1} }
+
+/* ---------- Rail ---------- */
+.rail{position:sticky; top:14px; display:flex; flex-direction:column; gap:14px}
+.rail-card{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px; box-shadow:var(--shadow)}
+.rail-card h3{font-size:11.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin-bottom:10px}
+.lightrow{display:flex; align-items:center; gap:9px; padding:5px 4px; border-radius:6px; text-decoration:none; color:var(--ink); font-size:13px}
+.lightrow:hover{background:var(--surface2)}
+.lightrow .nm{flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.lightrow.overall{border-top:1px solid var(--line); margin-top:5px; padding-top:9px; font-weight:700}
+.dot{width:22px; height:22px; flex:none; border-radius:50%; display:grid; place-items:center; font-size:12.5px; font-weight:800; border:1.5px solid var(--ni-line); background:var(--ni-bg); color:var(--ni)}
+.dot.Low{background:var(--low-bg); border-color:var(--low); color:var(--low)}
+.dot.Some{background:var(--some-bg); border-color:var(--some); color:var(--some)}
+.dot.High{background:var(--high-bg); border-color:var(--high); color:var(--high)}
+.progress-wrap{margin-top:4px}
+.progress-txt{font-size:12px; color:var(--muted); margin-bottom:6px}
+.pbar{height:6px; border-radius:3px; background:var(--surface3); overflow:hidden}
+.pbar>i{display:block; height:100%; width:0%; background:var(--accent); border-radius:3px; transition:width .25s}
+.toggle-line{display:flex; align-items:flex-start; gap:8px; font-size:13px; font-weight:600; color:var(--ink); cursor:pointer; user-select:none}
+.toggle-line input{width:auto; accent-color:var(--accent); margin-top:3px}
+.toggle-line .copy-hint{display:block; font-weight:400}
+
+/* ---------- Cards ---------- */
+.card{background:var(--surface); border:1px solid var(--line); border-radius:12px; box-shadow:var(--shadow); margin-bottom:22px; overflow:hidden}
+.card-head{padding:16px 20px 14px; border-bottom:1px solid var(--line); display:flex; gap:14px; align-items:baseline; flex-wrap:wrap}
+.card-head .dnum{font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; font-weight:700; color:var(--accent-ink); background:var(--accent-soft); border-radius:5px; padding:3px 8px; letter-spacing:.05em}
+.card-head h2{font-size:19.5px; font-weight:700; font-family:Charter,"Iowan Old Style","Palatino Linotype",Georgia,serif}
+.card-body{padding:18px 20px}
+.explain{
+  background:var(--surface2); border:1px solid var(--line); border-left:3px solid var(--accent);
+  border-radius:0 8px 8px 0; padding:12px 15px; font-size:13.5px; color:var(--ink); margin-bottom:18px;
+}
+.explain b{color:var(--accent-ink)}
+.explain .pitfall{margin-top:7px; color:var(--muted)}
+.learn-off .explain, .learn-off details.guide{display:none}
+
+/* ---------- Questions ---------- */
+.q{padding:14px 0; border-top:1px dashed var(--line)}
+.q:first-of-type{border-top:none}
+.q-head{display:flex; gap:10px; align-items:baseline}
+.q-id{font-family:ui-monospace,Menlo,Consolas,monospace; font-size:12px; font-weight:700; color:var(--muted); flex:none; padding-top:2px}
+.q-text{font-size:14.5px; font-weight:600; line-height:1.45}
+.q-cond{font-size:12px; color:var(--faint); font-weight:500; display:block; margin-top:2px}
+.chips{display:flex; gap:6px; flex-wrap:wrap; margin:9px 0 0 34px}
+.chip{
+  border:1.5px solid var(--line-strong); background:var(--surface); color:var(--ink);
+  border-radius:999px; padding:4.5px 13px; font-size:13px; font-weight:700; min-width:46px;
+}
+.chip:hover{border-color:var(--ink)}
+.chip.on{background:var(--chip-on); border-color:var(--chip-on); color:var(--chip-on-ink)}
+.q.inapplicable{opacity:.55}
+.q.inapplicable .chip{pointer-events:none; border-style:dashed}
+.na-note{margin:8px 0 0 34px; font-size:12.5px; color:var(--faint); font-style:italic}
+details.guide{margin:9px 0 0 34px; font-size:13px; border:1px solid var(--line); border-radius:8px; background:var(--surface2)}
+details.guide summary{cursor:pointer; padding:7px 12px; font-weight:600; color:var(--accent-ink); font-size:12.5px; user-select:none}
+details.guide[open] summary{border-bottom:1px solid var(--line)}
+details.guide .g-body{padding:9px 12px; color:var(--ink)}
+details.guide .g-body p{margin:.35em 0}
+.q-note{margin:9px 0 0 34px}
+.q-note textarea{min-height:40px; font-size:13px}
+.q-note label{display:block; margin-bottom:3px}
+
+/* ---------- Judgement block ---------- */
+.judge{
+  margin-top:18px; border:1px solid var(--line); border-radius:10px; background:var(--surface2);
+  padding:14px 16px; display:grid; gap:12px;
+}
+.judge-row{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+@media (max-width:700px){ .judge-row{grid-template-columns:1fr} }
+.verdict{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+.badge{
+  display:inline-flex; align-items:center; gap:7px; border-radius:999px; padding:5px 14px;
+  font-size:13.5px; font-weight:800; border:1.5px solid var(--ni-line); background:var(--ni-bg); color:var(--ni);
+}
+.badge.Low{background:var(--low-bg); border-color:var(--low); color:var(--low)}
+.badge.Some{background:var(--some-bg); border-color:var(--some); color:var(--some)}
+.badge.High{background:var(--high-bg); border-color:var(--high); color:var(--high)}
+.why{font-size:13px; color:var(--muted); margin:0; padding-left:18px}
+.why li{margin:2px 0}
+.override-tag{font-size:11.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--some); background:var(--some-bg); border:1px solid var(--some-line); padding:2px 8px; border-radius:5px}
+
+/* ---------- Info grid ---------- */
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:13px 16px}
+.grid3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:13px 16px}
+@media (max-width:760px){ .grid2,.grid3{grid-template-columns:1fr} }
+.field label{display:block; margin-bottom:4px}
+.aimbox{margin-top:16px; border:1.5px solid var(--accent); border-radius:10px; padding:13px 15px; background:var(--accent-soft)}
+.aimbox .aim-t{font-weight:700; font-size:13.5px; color:var(--accent-ink); margin-bottom:7px}
+.aimbox label.radio{display:flex; gap:8px; align-items:flex-start; font-weight:500; font-size:13.5px; color:var(--ink); cursor:pointer; margin:5px 0; letter-spacing:0}
+.aimbox input{width:auto; margin-top:3px; accent-color:var(--accent)}
+
+/* ---------- Analysis panel ---------- */
+.analysis .flag{display:flex; gap:9px; align-items:flex-start; padding:8px 12px; border-radius:8px; font-size:13.5px; margin:6px 0; border:1px solid var(--some-line); background:var(--some-bg); color:var(--ink)}
+.analysis .flag.ok{border-color:var(--low-line); background:var(--low-bg)}
+.analysis .flag .fi{font-weight:800; flex:none}
+.analysis h4{font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin:18px 0 8px}
+.analysis .dom-reason{border-top:1px dashed var(--line); padding:10px 0; font-size:13.5px}
+.analysis .dom-reason b{display:inline-block; min-width:0}
+.summary-box{width:100%; min-height:130px; font-size:13.5px; line-height:1.6; font-family:Charter,"Iowan Old Style",Georgia,serif}
+.copy-row{display:flex; gap:8px; margin-top:8px; align-items:center}
+.copy-hint{font-size:12px; color:var(--faint)}
+
+/* ---------- Table ---------- */
+.tbl-wrap{overflow-x:auto}
+table.dtab{border-collapse:collapse; width:100%; font-size:13.5px}
+table.dtab th,table.dtab td{border:1px solid var(--line); padding:7px 11px; text-align:left; vertical-align:top}
+table.dtab th{background:var(--surface2); font-size:12px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted)}
+
+footer.refs{margin-top:34px; padding-top:16px; border-top:1px solid var(--line); font-size:12.5px; color:var(--muted); line-height:1.7}
+.hidden{display:none !important}
+
+@media print{
+  .rail,.toolbar,.copy-row,details.guide,.q-note textarea:placeholder-shown{display:none !important}
+  body{background:#fff; color:#111}
+  .card{box-shadow:none; break-inside:avoid}
+  .shell{max-width:100%; padding:0}
+}
+@media (prefers-reduced-motion: reduce){ *{transition:none !important} }
+</style>
+
+<div class="shell">
+  <header class="masthead">
+    <div>
+      <div class="kicker">Randomized trials · Individually randomized, parallel-group</div>
+      <h1 class="serif">RoB 2 Workbench</h1>
+      <p class="sub">An editable, guided implementation of the Cochrane <b>Risk of Bias 2</b> tool (version of 22 August 2019) for learning and performing risk-of-bias assessment — with the official signalling questions, the official judgement algorithms, built-in analysis, and export to Excel.</p>
+    </div>
+    <div class="toolbar" role="toolbar" aria-label="Assessment actions">
+      <button class="btn" id="btnLoad" type="button">Open saved (.json)</button>
+      <button class="btn" id="btnSave" type="button">Save progress (.json)</button>
+      <button class="btn" id="btnPrint" type="button">Print / PDF</button>
+      <button class="btn primary" id="btnXlsx" type="button">Export to Excel (.xlsx)</button>
+      <input type="file" id="fileIn" accept=".json,application/json" class="hidden">
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="rail">
+      <nav class="rail-card" aria-label="Domain status">
+        <h3>Assessment status</h3>
+        <div id="lights"></div>
+        <div class="progress-wrap">
+          <div class="progress-txt" id="progTxt">0 of 0 questions answered</div>
+          <div class="pbar"><i id="progBar"></i></div>
+        </div>
+      </nav>
+      <div class="rail-card">
+        <h3>Options</h3>
+        <label class="toggle-line"><input type="checkbox" id="learnMode" checked> <span>Learning mode<small class="copy-hint">show explanations &amp; guidance</small></span></label>
+        <label class="toggle-line" style="margin-top:8px"><input type="checkbox" id="dirMode"> <span>Direction-of-bias<small class="copy-hint">optional questions</small></span></label>
+        <button class="btn" id="btnReset" type="button" style="margin-top:12px; width:100%">Start new assessment</button>
+      </div>
+    </aside>
+
+    <main id="main">
+      <!-- Study information -->
+      <section class="card" id="sec-info">
+        <div class="card-head"><span class="dnum">SETUP</span><h2>Study information</h2></div>
+        <div class="card-body">
+          <div class="explain">
+            <b>Before you judge bias, fix the target.</b> A RoB 2 assessment is made for <i>one specific result</i> of <i>one specific outcome</i> in <i>one trial</i> — not for the trial as a whole. Write down exactly which numerical result you are assessing, then choose which effect you are interested in: the effect of <i>assignment</i> to intervention (the intention-to-treat question most systematic reviews ask) or the effect of <i>adhering</i> to intervention (per-protocol). Your choice changes the Domain 2 signalling questions.
+          </div>
+          <div class="grid3">
+            <div class="field"><label for="f_assessor">Assessor</label><input id="f_assessor" data-info="assessor" placeholder="Your name / initials"></div>
+            <div class="field"><label for="f_date">Date</label><input id="f_date" data-info="date" type="date"></div>
+            <div class="field"><label for="f_studyId">Study ID</label><input id="f_studyId" data-info="studyId" placeholder="e.g. 001"></div>
+          </div>
+          <div class="grid2" style="margin-top:13px">
+            <div class="field"><label for="f_reference">Reference</label><input id="f_reference" data-info="reference" placeholder="e.g. Novo et al., 2014"></div>
+            <div class="field"><label for="f_outcome">Outcome being assessed</label><input id="f_outcome" data-info="outcome" placeholder="e.g. Young Mania Rating Scale at 24 weeks"></div>
+            <div class="field"><label for="f_exp">Experimental intervention</label><input id="f_exp" data-info="experimental" placeholder="e.g. EMDR"></div>
+            <div class="field"><label for="f_comp">Comparator</label><input id="f_comp" data-info="comparator" placeholder="e.g. Treatment as usual"></div>
+          </div>
+          <div class="field" style="margin-top:13px"><label for="f_result">Numerical result being assessed</label><input id="f_result" data-info="result" placeholder="e.g. MD −4.8 (95% CI −8.2 to −1.4)"></div>
+          <div class="grid2" style="margin-top:13px">
+            <div class="field"><label for="f_sources">Sources of information used</label><input id="f_sources" data-info="sources" placeholder="e.g. journal article, protocol, trial registry record"></div>
+            <div class="field"><label for="f_weight">Weight in meta-analysis (optional)</label><input id="f_weight" data-info="weight" placeholder="e.g. 1"></div>
+          </div>
+          <div class="aimbox">
+            <div class="aim-t">Which effect are you assessing? (determines the Domain 2 questions)</div>
+            <label class="radio"><input type="radio" name="aim" value="itt" checked> <span><b>Effect of assignment to intervention</b> — the “intention-to-treat” effect. Use this for most systematic reviews of effectiveness.</span></label>
+            <label class="radio"><input type="radio" name="aim" value="pp"> <span><b>Effect of adhering to intervention</b> — the “per-protocol” effect. Use this only when the review question is about receiving the intervention as intended.</span></label>
+          </div>
+        </div>
+      </section>
+
+      <div id="domains"></div>
+
+      <!-- Overall -->
+      <section class="card" id="sec-overall">
+        <div class="card-head"><span class="dnum">OVERALL</span><h2>Overall risk of bias</h2></div>
+        <div class="card-body">
+          <div class="explain">
+            <b>How the overall judgement works.</b> The result is at <b>low</b> overall risk only if all five domains are low. It is <b>high</b> risk if any domain is high, <i>or</i> if several domains have “some concerns” in a way that substantially lowers your confidence in the result. Otherwise the overall judgement is <b>some concerns</b>. The algorithm proposes the mapped judgement; you remain the assessor and may override it — always with a written justification.
+          </div>
+          <div class="tbl-wrap">
+            <table class="dtab" id="ovTable"></table>
+          </div>
+          <div class="judge" style="margin-top:16px">
+            <div class="verdict">
+              <span style="font-weight:700; font-size:13.5px">Algorithm proposes:</span>
+              <span class="badge" id="ovBadge">—</span>
+              <span id="ovOverrideTag" class="override-tag hidden">overridden</span>
+            </div>
+            <ul class="why" id="ovWhy"></ul>
+            <div class="judge-row">
+              <div class="field">
+                <label for="ovSel">Your overall judgement</label>
+                <select id="ovSel">
+                  <option value="">Accept algorithm suggestion</option>
+                  <option value="Low">Low risk of bias</option>
+                  <option value="Some concerns">Some concerns</option>
+                  <option value="High">High risk of bias</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="ovJust">Justification / overall comment</label>
+                <textarea id="ovJust" placeholder="Summarize the main drivers of the overall judgement, citing the study text where possible."></textarea>
+              </div>
+            </div>
+            <div class="field hidden" data-dirfield>
+              <label for="ovDir">Optional: predicted direction of overall bias</label>
+              <select id="ovDir" data-dir="overall">
+                <option value="">—</option><option>Favours experimental</option><option>Favours comparator</option>
+                <option>Towards null</option><option>Away from null</option><option>Unpredictable</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Analysis -->
+      <section class="card analysis" id="sec-analysis">
+        <div class="card-head"><span class="dnum">ANALYSIS</span><h2>Built-in analysis &amp; draft summary</h2></div>
+        <div class="card-body">
+          <div class="explain">
+            <b>What this panel does.</b> As you answer, the tool re-runs the official RoB 2 mapping algorithms, explains <i>why</i> each judgement was proposed, checks your assessment for gaps and inconsistencies, and drafts a risk-of-bias paragraph you can edit and paste into a review or manuscript. Everything runs locally in your browser — nothing is uploaded anywhere.
+          </div>
+          <h4>Consistency checks</h4>
+          <div id="flags"></div>
+          <h4>Domain-by-domain reasoning</h4>
+          <div id="domReasons"></div>
+          <h4>Draft summary paragraph (editable)</h4>
+          <textarea class="summary-box" id="summaryBox" spellcheck="true"></textarea>
+          <div class="copy-row">
+            <button class="btn" id="btnRegen" type="button">Regenerate from answers</button>
+            <button class="btn" id="btnCopy" type="button">Copy paragraph</button>
+            <span class="copy-hint" id="copyHint"></span>
+          </div>
+        </div>
+      </section>
+
+      <footer class="refs">
+        <b>Sources and attribution.</b> Signalling questions, response options and judgement algorithms are from the RoB 2 tool for individually randomized, parallel-group trials (version of 22 August 2019): Sterne JAC, Savović J, Page MJ, et&nbsp;al. <i>RoB&nbsp;2: a revised tool for assessing risk of bias in randomised trials.</i> BMJ 2019;366:l4898. Current official materials, full guidance and the macro-enabled Excel implementation are at <a href="https://www.riskofbias.info" rel="noopener">riskofbias.info</a>. This workbench is an independent educational implementation for learning and practice; the algorithm output is a <i>proposed</i> judgement — the assessor's reasoned judgement, with supporting quotations, is always the final answer. For publication-grade reviews, follow the official guidance document and your review protocol.
+      </footer>
+    </main>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* =====================================================================
+   RoB 2 Workbench — data, algorithms, rendering, analysis, export
+   Algorithms transcribed from the official RoB 2 (22 Aug 2019) mapping
+   flowcharts / the official Excel implementation.
+   ===================================================================== */
+
+const RESP = ["Y","PY","PN","N","NI"];
+const RESP_LABEL = {Y:"Yes", PY:"Probably yes", PN:"Probably no", N:"No", NI:"No information", NA:"Not applicable"};
+const JCLASS = {"Low":"Low","Some concerns":"Some","High":"High"};
+const JLABEL = {"Low":"Low risk of bias","Some concerns":"Some concerns","High":"High risk of bias"};
+
+/* ---------- Domain definitions ---------- */
+const DOMAINS = [
+{
+  key:"d1", num:"D1", title:"Bias arising from the randomization process",
+  short:"Randomization",
+  explain:`<b>Why this domain exists.</b> Randomization is what makes a trial a fair test: if the allocation sequence is truly random <i>and</i> nobody can foresee upcoming assignments while enrolling participants, the groups differ only by chance. Two things can break this — a non-random sequence (alternation, date of birth, record number) and inadequate <b>allocation concealment</b>, which lets recruiters steer particular patients into particular arms.
+  <div class="pitfall"><b>Common learner mistake:</b> confusing concealment (hiding the <i>next</i> assignment before enrolment — always possible) with blinding (hiding the intervention <i>after</i> assignment — covered in Domains 2 and 4).</div>`,
+  questions:[
+    {id:"1.1", text:"Was the allocation sequence random?",
+     guide:`<p><b>Answer Y/PY</b> for computer-generated random numbers, random number tables, coin toss, shuffled cards, drawing lots, or minimization (considered equivalent to randomization).</p>
+     <p><b>Answer N/PN</b> for alternation ("every other patient"), date of birth, day of admission, record number, or allocation by clinician/participant preference — these are <i>not</i> random.</p>
+     <p><b>NI</b> if the report only says "randomised" with no method. Note: if concealment is adequate (1.2) and baseline looks fine (1.3), NI here still permits a Low judgement.</p>`},
+    {id:"1.2", text:"Was the allocation sequence concealed until participants were enrolled and assigned to interventions?",
+     guide:`<p><b>Answer Y/PY</b> for central/telephone/web-based randomization, pharmacy-controlled allocation, or sequentially numbered, opaque, sealed envelopes.</p>
+     <p><b>Answer N/PN</b> if recruiters could foresee assignments: an open allocation list, unsealed or transparent envelopes, or alternation-type sequences (which are inherently predictable).</p>
+     <p>This is the single most decisive question in Domain 1: N/PN here → High risk, regardless of the other answers.</p>`},
+    {id:"1.3", text:"Did baseline differences between intervention groups suggest a problem with the randomization process?",
+     guide:`<p>Look at the baseline table. <b>Chance imbalances are expected and are fine</b> — answer <b>N/PN</b> for ordinary small differences.</p>
+     <p><b>Answer Y/PY</b> only when imbalances are unlikely to be due to chance (e.g. severe, consistent imbalance in prognostic factors, significance tests showing more imbalance than chance predicts, or numbers that don't fit the claimed procedure).</p>
+     <p>Do not use this question to punish small trials for ordinary noise.</p>`}
+  ]
+},
+{
+  key:"d2", num:"D2", title:"Bias due to deviations from intended interventions",
+  short:"Deviations",
+  explain:`<b>Why this domain exists.</b> After randomization, things happen: participants learn their assignment, clinicians add co-interventions, people don't adhere, and analysts sometimes drop participants from the arms they were randomized to. This domain asks whether such deviations — <i>and how the analysis handled them</i> — biased the result. The questions differ depending on the effect you chose above: <b>assignment</b> (intention-to-treat) or <b>adhering</b> (per-protocol).
+  <div class="pitfall"><b>Common learner mistake:</b> marking an unblinded trial High automatically. Lack of blinding matters here only if it led to deviations from intended intervention that arose <i>because of the trial context</i> and affected the outcome — or if the analysis was not an appropriate ITT analysis.</div>`,
+  variants:{
+  itt:[
+    {id:"2.1", text:"Were participants aware of their assigned intervention during the trial?",
+     guide:`<p><b>Y/PY</b> in open-label trials or when blinding likely failed (e.g. obvious side effects). <b>N/PN</b> when participants were successfully blinded (adequate placebo).</p>`},
+    {id:"2.2", text:"Were carers and people delivering the interventions aware of participants' assigned intervention during the trial?",
+     guide:`<p>Applies to clinicians, therapists, nurses — anyone delivering care. <b>N/PN</b> requires effective blinding of these people. If both 2.1 and 2.2 are N/PN, the domain is Low for this part: unblinded-behaviour deviations can't arise if nobody knew.</p>`},
+    {id:"2.3", text:"Were there deviations from the intended intervention that arose because of the trial context?",
+     cond:{show:s=>ynip(s["2.1_itt"])||ynip(s["2.2_itt"]), label:"Answer if Y/PY/NI to 2.1 or 2.2"},
+     guide:`<p>This means deviations <i>beyond what would happen in usual practice</i>, occurring because people knew this was a trial and knew the assignment — e.g. control-arm participants seeking the experimental therapy elsewhere, or clinicians giving extra attention to one arm.</p>
+     <p>Co-interventions and dose changes that would occur the same way in routine care are <b>not</b> deviations for the effect of assignment — answer <b>N/PN</b> for those.</p>`},
+    {id:"2.4", text:"Were these deviations likely to have affected the outcome?",
+     cond:{show:s=>yp(s["2.3_itt"]), label:"Answer if Y/PY to 2.3"},
+     guide:`<p>Ask whether the deviation plausibly changes this particular outcome (size, direction, timing). Trivial or outcome-irrelevant deviations → <b>N/PN</b>.</p>`},
+    {id:"2.5", text:"Were these deviations from intended intervention balanced between groups?",
+     cond:{show:s=>ynip(s["2.4_itt"]), label:"Answer if Y/PY/NI to 2.4"},
+     guide:`<p>Deviations affecting both arms roughly equally (<b>Y/PY</b>) push toward Some concerns; unbalanced deviations (<b>N/PN</b>) push toward High, because they create a systematic difference between arms.</p>`},
+    {id:"2.6", text:"Was an appropriate analysis used to estimate the effect of assignment to intervention?",
+     guide:`<p><b>Appropriate (Y/PY):</b> intention-to-treat — all randomized participants analysed in the groups they were assigned to, regardless of adherence. </p>
+     <p><b>Inappropriate (N/PN):</b> per-protocol analysis excluding non-adherers, "as-treated" analysis, or excluding participants post-randomization for protocol reasons. (A "modified ITT" excluding only those with no post-baseline data may still be acceptable — read what was actually done.)</p>`},
+    {id:"2.7", text:"Was there potential for a substantial impact (on the result) of the failure to analyse participants in the group to which they were randomized?",
+     cond:{show:s=>nni(s["2.6_itt"]), label:"Answer if N/PN/NI to 2.6"},
+     guide:`<p>Consider how many participants were analysed in the wrong group or excluded, relative to the event rate / effect size. Very small proportions (roughly &lt;5%, outcome-dependent) rarely matter → <b>N/PN</b>; larger or differential exclusions → <b>Y/PY</b>.</p>`}
+  ],
+  pp:[
+    {id:"2.1", text:"Were participants aware of their assigned intervention during the trial?",
+     guide:`<p>Same as for the assignment effect: <b>Y/PY</b> in open-label trials; <b>N/PN</b> with effective blinding.</p>`},
+    {id:"2.2", text:"Were carers and people delivering the interventions aware of participants' assigned intervention during the trial?",
+     guide:`<p>Same as for the assignment effect. Awareness matters here because it can trigger non-protocol co-interventions and adherence differences.</p>`},
+    {id:"2.3", text:"[If applicable] Were important non-protocol interventions balanced across intervention groups?",
+     na:true, cond:{show:s=>ynip(s["2.1_pp"])||ynip(s["2.2_pp"]), label:"Answer if Y/PY/NI to 2.1 or 2.2 · NA if no important non-protocol interventions"},
+     guide:`<p>Non-protocol interventions are additional treatments participants received outside the protocol (rescue medication, other therapies). <b>Y/PY</b> if balanced across arms; <b>N/PN</b> if unbalanced; <b>NA</b> if none were available or relevant.</p>`},
+    {id:"2.4", text:"[If applicable] Were there failures in implementing the intervention that could have affected the outcome?",
+     na:true,
+     guide:`<p>Implementation failures are on the <i>delivery</i> side: wrong dose dispensed, poorly trained therapists, equipment failures. <b>N/PN/NA</b> if delivery was faithful or the question doesn't apply; <b>Y/PY</b> if failures plausibly affected the outcome.</p>`},
+    {id:"2.5", text:"[If applicable] Was there non-adherence to the assigned intervention regimen that could have affected participants' outcomes?",
+     na:true,
+     guide:`<p>Non-adherence is on the <i>participant</i> side: stopping treatment, taking it partially, switching arms. <b>Y/PY</b> if enough non-adherence occurred to plausibly affect outcomes.</p>`},
+    {id:"2.6", text:"Was an appropriate analysis used to estimate the effect of adhering to the intervention?",
+     cond:{show:s=>nni(s["2.3_pp"])||ynip(s["2.4_pp"])||ynip(s["2.5_pp"]), label:"Answer if N/PN/NI to 2.3, or Y/PY/NI to 2.4 or 2.5"},
+     guide:`<p>Estimating a per-protocol effect well is <i>hard</i>. Naively excluding non-adherers or as-treated analyses are usually <b>inappropriate (N/PN)</b> because adherence is prognostically linked to outcome. Appropriate approaches (<b>Y/PY</b>) include instrumental-variable methods or per-protocol analyses with proper adjustment for confounding.</p>`}
+  ]}
+},
+{
+  key:"d3", num:"D3", title:"Bias due to missing outcome data",
+  short:"Missing data",
+  explain:`<b>Why this domain exists.</b> Participants drop out, miss visits, or withdraw — and if data are missing <i>for reasons related to the true outcome</i> (e.g. people leave because treatment isn't working), the observed result can be badly distorted even when the analysis looks tidy. This domain walks from "how complete are the data?" to "does missingness plausibly depend on the outcome itself?"
+  <div class="pitfall"><b>Common learner mistake:</b> reading 3.1 as a fixed cut-off. "Nearly all" depends on the outcome: 95% may be ample for a common continuous outcome but inadequate for a rare event where a few missing participants could change the result.</div>`,
+  questions:[
+    {id:"3.1", text:"Were data for this outcome available for all, or nearly all, participants randomized?",
+     guide:`<p><b>Y/PY</b> when the analysed N is (close to) the randomized N for this outcome — "nearly all" means the missing fraction is too small to matter for this outcome type. If yes, the domain is Low and you're done.</p>`},
+    {id:"3.2", text:"Is there evidence that the result was not biased by missing outcome data?",
+     cond:{show:s=>nni(s["3.1"]), label:"Answer if N/PN/NI to 3.1"},
+     guide:`<p>Such evidence usually means sensitivity analyses showing the result is robust to plausible assumptions about the missing data (e.g. best/worst-case imputation, tipping-point analysis) — not merely that an imputation method was used. <b>Y/PY</b> → Low.</p>`},
+    {id:"3.3", text:"Could missingness in the outcome depend on its true value?",
+     cond:{show:s=>np(s["3.2"])||s["3.2"]==="NI", label:"Answer if N/PN (or NI) to 3.2"},
+     guide:`<p>Ask <i>why</i> data are missing. Dropout due to lack of efficacy, adverse effects, or deterioration means missingness likely depends on the outcome → <b>Y/PY</b>. Administrative reasons unrelated to health (site closure, relocation) → <b>N/PN</b>.</p>`},
+    {id:"3.4", text:"Is it likely that missingness in the outcome depended on its true value?",
+     cond:{show:s=>ynip(s["3.3"]), label:"Answer if Y/PY/NI to 3.3"},
+     guide:`<p>This escalates 3.3 from "could" to "likely": look at whether reasons for missingness differ between arms, whether rates differ, and whether reported reasons are outcome-related. <b>Y/PY/NI</b> → High; <b>N/PN</b> → Some concerns.</p>`}
+  ]
+},
+{
+  key:"d4", num:"D4", title:"Bias in measurement of the outcome",
+  short:"Measurement",
+  explain:`<b>Why this domain exists.</b> A result can be biased at the moment of measurement: an inappropriate instrument, methods that differ between arms, or — most commonly — an <b>outcome assessor who knows the assignment</b> and whose judgement can be nudged by that knowledge. Subjective outcomes (pain scales, clinician-rated improvement) are far more vulnerable than objective ones (all-cause mortality, lab values).
+  <div class="pitfall"><b>Common learner mistake:</b> forgetting that for participant-reported outcomes, the <i>participant</i> is the outcome assessor — so an unblinded participant answering a symptom questionnaire means 4.3 = Yes.</div>`,
+  questions:[
+    {id:"4.1", text:"Was the method of measuring the outcome inappropriate?",
+     guide:`<p>Rarely Yes. <b>Y/PY</b> for genuinely defective measures: unvalidated scales invented for the trial, instruments measuring something other than the target construct, or thresholds chosen to manufacture effects. A merely imperfect but standard measure → <b>N/PN</b>.</p>`},
+    {id:"4.2", text:"Could measurement or ascertainment of the outcome have differed between intervention groups?",
+     guide:`<p><b>Y/PY</b> if arms were measured differently: different instruments, different visit schedules, more intensive surveillance in one arm (detection bias). Identical procedures across arms → <b>N/PN</b>. Y/PY on 4.1 or 4.2 → High immediately.</p>`},
+    {id:"4.3", text:"Were outcome assessors aware of the intervention received by study participants?",
+     cond:{show:s=>nnni(s["4.1"])&&nnni(s["4.2"]), label:"Answer if N/PN/NI to both 4.1 and 4.2"},
+     guide:`<p>Identify who the assessor actually is: for patient-reported outcomes it's the participant; for clinician-rated scales it's the clinician; for mortality it's effectively nobody. <b>N/PN</b> (blinded assessor) → Low.</p>`},
+    {id:"4.4", text:"Could assessment of the outcome have been influenced by knowledge of intervention received?",
+     cond:{show:s=>ynip(s["4.3"]), label:"Answer if Y/PY/NI to 4.3"},
+     guide:`<p>Depends on outcome subjectivity. All-cause death: essentially no (<b>N/PN</b> → Low even without blinding). Symptom scales, functional ratings, "clinical improvement": yes, plausibly (<b>Y/PY</b>).</p>`},
+    {id:"4.5", text:"Is it likely that assessment of the outcome was influenced by knowledge of intervention received?",
+     cond:{show:s=>ynip(s["4.4"]), label:"Answer if Y/PY/NI to 4.4"},
+     guide:`<p>Escalates 4.4 from "could" to "likely": consider how subjective the measure is, assessor incentives/beliefs, and any evidence of differential rating. <b>N/PN</b> → Some concerns; <b>Y/PY/NI</b> → High.</p>`}
+  ]
+},
+{
+  key:"d5", num:"D5", title:"Bias in selection of the reported result",
+  short:"Reporting",
+  explain:`<b>Why this domain exists.</b> Trialists usually measure more than they report: multiple scales, time points, definitions, and analysis choices. If the reported number was <i>picked because it looked best</i>, the literature inherits an optimistic bias invisible in the paper itself. The antidote is a pre-specified analysis plan finalized <b>before</b> unblinded data were available — so compare the paper against the protocol, statistical analysis plan, or trial registry entry.
+  <div class="pitfall"><b>Common learner mistake:</b> answering 5.1 = Yes just because the trial was registered. Check <i>when</i> the registration/SAP was finalized relative to data collection, and whether the reported outcome actually matches it.</div>`,
+  questions:[
+    {id:"5.1", text:"Were the data that produced this result analysed in accordance with a pre-specified analysis plan that was finalized before unblinded outcome data were available for analysis?",
+     guide:`<p>Find the protocol, SAP or registry record; compare outcome definition, time point and analysis with what was reported. <b>Y/PY</b> if they match and pre-date unblinded data; <b>NI</b> if no accessible plan exists (very common — and caps the domain at Some concerns even when 5.2/5.3 are reassuring).</p>`},
+    {id:"5.2", text:"Is the numerical result being assessed likely to have been selected, on the basis of the results, from multiple eligible outcome measurements (e.g. scales, definitions, time points) within the outcome domain?",
+     guide:`<p>Warning signs: several scales measured but one reported; unusual time point emphasized; a cut-off or definition not seen in the protocol. <b>Y/PY</b> → High. Reporting all measurements, or an obviously conventional single measure → <b>N/PN</b>.</p>`},
+    {id:"5.3", text:"Is the numerical result being assessed likely to have been selected, on the basis of the results, from multiple eligible analyses of the data?",
+     guide:`<p>Multiple analyses = adjusted vs unadjusted, different imputation methods, subgroups, per-protocol vs ITT. <b>Y/PY</b> if the reported analysis appears chosen for its result → High. A single conventional pre-specified analysis → <b>N/PN</b>.</p>`}
+  ]
+}
+];
+
+/* answer-set helpers */
+function yp(v){return v==="Y"||v==="PY"}
+function np(v){return v==="N"||v==="PN"}
+function ynip(v){return v==="Y"||v==="PY"||v==="NI"}
+function nni(v){return v==="N"||v==="PN"||v==="NI"}
+function nnni(v){return v==="N"||v==="PN"||v==="NI"}
+function npna(v){return v==="N"||v==="PN"||v==="NA"}
+
+/* ---------- State ---------- */
+const LSKEY = "rob2-workbench-v1";
+let state = blankState();
+function blankState(){
+  return {
+    info:{assessor:"",date:"",studyId:"",reference:"",experimental:"",comparator:"",outcome:"",result:"",sources:"",weight:"",aim:"itt"},
+    answers:{}, notes:{},
+    judgements:{d1:"",d2:"",d3:"",d4:"",d5:"",overall:""},
+    justifications:{d1:"",d2:"",d3:"",d4:"",d5:"",overall:""},
+    directions:{d1:"",d2:"",d3:"",d4:"",d5:"",overall:""},
+    prefs:{learn:true,dir:false},
+    summaryEdited:"", summaryIsEdited:false
+  };
+}
+
+/* ---------- Algorithms (official RoB 2 mapping) ---------- */
+function algoD1(a){
+  const q11=a["1.1"],q12=a["1.2"],q13=a["1.3"];
+  if(np(q12)) return J("High",["Allocation sequence was not concealed (1.2 = "+q12+") — recruiters could foresee assignments."]);
+  if(!q12||!q11||!q13) return J(null,["Answer 1.1, 1.2 and 1.3 to obtain a proposed judgement."]);
+  if(q12==="NI"){
+    if(yp(q13)) return J("High",["No information on allocation concealment (1.2 = NI) and baseline imbalance suggests a randomization problem (1.3 = "+q13+")."]);
+    return J("Some concerns",["No information on allocation concealment (1.2 = NI); baseline does not suggest a problem, but concealment cannot be confirmed."]);
+  }
+  /* 1.2 = Y/PY */
+  if(np(q11)) return J("Some concerns",["Allocation was concealed, but the sequence was not random (1.1 = "+q11+")."]);
+  if(yp(q13)) return J("Some concerns",["Sequence generation and concealment look adequate, but baseline imbalance suggests a possible problem with randomization (1.3 = "+q13+")."]);
+  const seq = q11==="NI" ? "sequence generation not described (1.1 = NI) but concealment adequate" : "random sequence (1.1 = "+q11+")";
+  return J("Low",["Adequate allocation concealment (1.2 = "+q12+"), "+seq+", and no baseline imbalance suggesting a problem (1.3 = "+q13+")."]);
+}
+
+function algoD2itt(a){
+  const g=k=>a[k+"_itt"];
+  const q21=g("2.1"),q22=g("2.2"),q23=g("2.3"),q24=g("2.4"),q25=g("2.5"),q26=g("2.6"),q27=g("2.7");
+  let p1=null,p1why="";
+  if(np(q21)&&np(q22)){p1="Low";p1why="Participants and personnel were both blinded (2.1/2.2 = "+q21+"/"+q22+"), so context-driven deviations are unlikely.";}
+  else if(ynip(q21)||ynip(q22)){
+    if(np(q23)){p1="Low";p1why="Despite awareness of assignment, no deviations arose because of the trial context (2.3 = "+q23+").";}
+    else if(q23==="NI"){p1="Some concerns";p1why="Awareness of assignment with no information about trial-context deviations (2.3 = NI).";}
+    else if(yp(q23)){
+      if(np(q24)){p1="Some concerns";p1why="Trial-context deviations occurred (2.3 = "+q23+") but were unlikely to have affected the outcome (2.4 = "+q24+").";}
+      else if(ynip(q24)){
+        if(yp(q25)){p1="Some concerns";p1why="Deviations likely affected the outcome (2.4 = "+q24+") but were balanced between groups (2.5 = "+q25+").";}
+        else if(nni(q25)){p1="High";p1why="Deviations likely affected the outcome (2.4 = "+q24+") and were unbalanced between groups or balance is unknown (2.5 = "+q25+").";}
+      }
+    }
+  }
+  let p2=null,p2why="";
+  if(yp(q26)){p2="Low";p2why="An appropriate intention-to-treat-type analysis was used (2.6 = "+q26+").";}
+  else if(nni(q26)){
+    if(np(q27)){p2="Some concerns";p2why="The analysis was not an appropriate ITT analysis (2.6 = "+q26+"), but the mis-analysed/excluded participants were too few to have a substantial impact (2.7 = "+q27+").";}
+    else if(ynip(q27)){p2="High";p2why="The analysis was not appropriate for the effect of assignment (2.6 = "+q26+") and this could have had a substantial impact on the result (2.7 = "+q27+").";}
+  }
+  if(p1===null||p2===null) return J(null,["Answer the applicable questions in both parts (blinding/deviations: 2.1–2.5; analysis: 2.6–2.7)."]);
+  if(p1==="High"||p2==="High") return J("High",[p1why,p2why]);
+  if(p1==="Low"&&p2==="Low") return J("Low",[p1why,p2why]);
+  return J("Some concerns",[p1why,p2why]);
+}
+
+function algoD2pp(a){
+  const g=k=>a[k+"_pp"];
+  const q21=g("2.1"),q22=g("2.2"),q23=g("2.3"),q24=g("2.4"),q25=g("2.5"),q26=g("2.6");
+  const adherenceBranch=()=>{
+    if(npna(q24)&&npna(q25)) return J("Low",["No important implementation failures (2.4 = "+q24+") and no outcome-affecting non-adherence (2.5 = "+q25+")."]);
+    if(ynip(q24)||ynip(q25)){
+      if(yp(q26)) return J("Some concerns",["Implementation failures or non-adherence could have affected outcomes (2.4/2.5 = "+q24+"/"+q25+"), but an appropriate analysis was used to estimate the effect of adhering (2.6 = "+q26+")."]);
+      if(nni(q26)) return J("High",["Implementation failures or non-adherence could have affected outcomes (2.4/2.5 = "+q24+"/"+q25+") and the analysis was not appropriate for the per-protocol effect (2.6 = "+q26+")."]);
+    }
+    return J(null,["Answer 2.4, 2.5 (and 2.6 if applicable) to obtain a proposed judgement."]);
+  };
+  if(np(q21)&&np(q22)) return q24&&q25 ? adherenceBranch() : J(null,["Answer 2.4 and 2.5 to obtain a proposed judgement."]);
+  if(ynip(q21)||ynip(q22)){
+    if(!q23) return J(null,["Answer 2.3 (non-protocol interventions) to continue."]);
+    if(yp(q23)||q23==="NA") return adherenceBranch();
+    if(nni(q23)){
+      if(yp(q26)) return J("Some concerns",["Non-protocol interventions were unbalanced or unclear (2.3 = "+q23+"), but an appropriate analysis was used (2.6 = "+q26+")."]);
+      if(nni(q26)) return J("High",["Non-protocol interventions were unbalanced or unclear (2.3 = "+q23+") and the analysis was not appropriate for the per-protocol effect (2.6 = "+q26+")."]);
+      return J(null,["Answer 2.6 to obtain a proposed judgement."]);
+    }
+  }
+  return J(null,["Answer 2.1 and 2.2 to begin this domain."]);
+}
+
+function algoD3(a){
+  const q1=a["3.1"],q2=a["3.2"],q3=a["3.3"],q4=a["3.4"];
+  if(yp(q1)) return J("Low",["Outcome data were available for all or nearly all randomized participants (3.1 = "+q1+")."]);
+  if(!q1) return J(null,["Answer 3.1 to begin this domain."]);
+  if(yp(q2)) return J("Low",["Data are incomplete (3.1 = "+q1+"), but there is evidence the result was not biased by missing data (3.2 = "+q2+")."]);
+  if(!q2) return J(null,["Answer 3.2 to continue."]);
+  if(np(q3)) return J("Low",["Data are incomplete without robustness evidence, but missingness is unlikely to depend on the true outcome value (3.3 = "+q3+")."]);
+  if(!q3) return J(null,["Answer 3.3 to continue."]);
+  if(np(q4)) return J("Some concerns",["Missingness could depend on the outcome's true value (3.3 = "+q3+"), but it is not likely that it did (3.4 = "+q4+")."]);
+  if(ynip(q4)) return J("High",["It is likely that missingness depended on the outcome's true value (3.4 = "+q4+") — e.g. dropout related to efficacy or harm."]);
+  return J(null,["Answer 3.4 to obtain a proposed judgement."]);
+}
+
+function algoD4(a){
+  const q1=a["4.1"],q2=a["4.2"],q3=a["4.3"],q4=a["4.4"],q5=a["4.5"];
+  if(yp(q1)) return J("High",["The method of measuring the outcome was inappropriate (4.1 = "+q1+")."]);
+  if(yp(q2)) return J("High",["Measurement or ascertainment of the outcome differed between groups (4.2 = "+q2+")."]);
+  if(!q1||!q2) return J(null,["Answer 4.1 and 4.2 to begin this domain."]);
+  const base = q2==="NI" ? "Some concerns" : "Low";
+  const baseWhy = q2==="NI" ? "no information on whether measurement differed between groups (4.2 = NI)" : "measurement was appropriate and comparable between groups (4.1 = "+q1+", 4.2 = "+q2+")";
+  if(np(q3)) return J(base,["Outcome assessors were unaware of assignment (4.3 = "+q3+"); "+baseWhy+"."]);
+  if(!q3) return J(null,["Answer 4.3 to continue."]);
+  if(np(q4)) return J(base,["Assessors were aware of assignment (4.3 = "+q3+"), but assessment could not plausibly be influenced by that knowledge (4.4 = "+q4+"); "+baseWhy+"."]);
+  if(!q4) return J(null,["Answer 4.4 to continue."]);
+  if(np(q5)) return J("Some concerns",["Assessment could have been influenced by knowledge of assignment (4.4 = "+q4+"), but it is not likely that it was (4.5 = "+q5+")."]);
+  if(ynip(q5)) return J("High",["It is likely that outcome assessment was influenced by knowledge of the intervention received (4.5 = "+q5+")."]);
+  return J(null,["Answer 4.5 to obtain a proposed judgement."]);
+}
+
+function algoD5(a){
+  const q1=a["5.1"],q2=a["5.2"],q3=a["5.3"];
+  if(yp(q2)||yp(q3)){
+    if(!q1) return J(null,["Answer 5.1 to obtain a proposed judgement."]);
+    const which=[yp(q2)?"multiple eligible outcome measurements (5.2 = "+q2+")":null, yp(q3)?"multiple eligible analyses (5.3 = "+q3+")":null].filter(Boolean).join(" and ");
+    return J("High",["The reported result was likely selected, on the basis of results, from "+which+"."]);
+  }
+  if(!q1||!q2||!q3) return J(null,["Answer 5.1, 5.2 and 5.3 to obtain a proposed judgement."]);
+  if(np(q2)&&np(q3)){
+    if(yp(q1)) return J("Low",["Analysis followed a pre-specified plan finalized before unblinded data were available (5.1 = "+q1+"), with no likely selection from multiple measurements or analyses (5.2 = "+q2+", 5.3 = "+q3+")."]);
+    return J("Some concerns",["No likely selective reporting (5.2 = "+q2+", 5.3 = "+q3+"), but there was no accessible pre-specified analysis plan to confirm this (5.1 = "+q1+")."]);
+  }
+  return J("Some concerns",["Selection from multiple measurements or analyses cannot be ruled out (5.2 = "+q2+", 5.3 = "+q3+")."]);
+}
+
+function J(j,why){return {j:j, why:(why||[]).filter(Boolean)}}
+
+function algoOverall(effective){
+  const vals=["d1","d2","d3","d4","d5"].map(k=>effective[k]);
+  if(vals.some(v=>!v)) return J(null,["Complete all five domains to obtain a proposed overall judgement."]);
+  const highs=vals.filter(v=>v==="High").length, somes=vals.filter(v=>v==="Some concerns").length;
+  if(highs>0) return J("High",[highs+" domain"+(highs>1?"s are":" is")+" at high risk of bias."]);
+  if(somes===0) return J("Low",["All five domains are at low risk of bias."]);
+  const w=[somes+" domain"+(somes>1?"s have":" has")+" some concerns; no domain is at high risk."];
+  if(somes>=3) w.push("Note: with some concerns in "+somes+" domains, the RoB 2 guidance says you may judge the result High overall if, taken together, they substantially lower your confidence in it. Use the override below if so — and justify it.");
+  return J("Some concerns",w);
+}
+
+const ALGOS={d1:algoD1, d2:a=>state.info.aim==="pp"?algoD2pp(a):algoD2itt(a), d3:algoD3, d4:algoD4, d5:algoD5};
+
+/* ---------- Question helpers ---------- */
+function domainQuestions(d){
+  if(d.key==="d2") return d.variants[state.info.aim];
+  return d.questions;
+}
+function qkey(d,q){ return d.key==="d2" ? q.id+"_"+state.info.aim : q.id; }
+function qApplicable(d,q){
+  if(!q.cond) return {ok:true};
+  return {ok:!!q.cond.show(state.answers), label:q.cond.label};
+}
+
+/* ---------- Rendering ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+
+function buildDomains(){
+  const host=$("#domains"); host.innerHTML="";
+  DOMAINS.forEach(d=>{
+    const sec=document.createElement("section");
+    sec.className="card"; sec.id="sec-"+d.key;
+    let qhtml="";
+    domainQuestions(d).forEach(q=>{
+      const uid=qkey(d,q);
+      const chips=[...RESP, ...(q.na?["NA"]:[])].map(v=>
+        `<button type="button" class="chip" data-uid="${uid}" data-val="${v}" title="${RESP_LABEL[v]}" aria-pressed="false">${v}</button>`).join("");
+      qhtml+=`<div class="q" data-uid="${uid}" data-dom="${d.key}" data-qid="${q.id}">
+        <div class="q-head"><span class="q-id">${q.id}</span>
+          <div><span class="q-text">${q.text}</span>${q.cond?`<span class="q-cond">${q.cond.label}</span>`:""}</div>
+        </div>
+        <div class="chips" role="group" aria-label="Response to ${q.id}">${chips}</div>
+        <div class="na-note hidden">Not applicable given your earlier answers — automatically skipped.</div>
+        <details class="guide"><summary>How to answer ${q.id}</summary><div class="g-body">${q.guide}</div></details>
+        <div class="q-note"><label for="note-${uid}">Support for judgement (quote / page ref)</label>
+        <textarea id="note-${uid}" data-note="${uid}" placeholder="Quote the study text or note the page that supports your answer…">${esc(state.notes[uid]||"")}</textarea></div>
+      </div>`;
+    });
+    sec.innerHTML=`
+      <div class="card-head"><span class="dnum">${d.num}</span><h2>${d.title}</h2>${d.key==="d2"?`<span class="q-cond" style="width:100%">Questions shown for the <b>${state.info.aim==="pp"?"effect of adhering (per-protocol)":"effect of assignment (intention-to-treat)"}</b> — change under Study information.</span>`:""}</div>
+      <div class="card-body">
+        <div class="explain">${d.explain}</div>
+        ${qhtml}
+        <div class="judge">
+          <div class="verdict">
+            <span style="font-weight:700; font-size:13.5px">Algorithm proposes:</span>
+            <span class="badge" id="badge-${d.key}">—</span>
+            <span class="override-tag hidden" id="ovr-${d.key}">overridden</span>
+          </div>
+          <ul class="why" id="why-${d.key}"></ul>
+          <div class="judge-row">
+            <div class="field">
+              <label for="jsel-${d.key}">Your judgement for this domain</label>
+              <select id="jsel-${d.key}" data-judge="${d.key}">
+                <option value="">Accept algorithm suggestion</option>
+                <option value="Low">Low risk of bias</option>
+                <option value="Some concerns">Some concerns</option>
+                <option value="High">High risk of bias</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="just-${d.key}">Justification (required if you override)</label>
+              <textarea id="just-${d.key}" data-just="${d.key}" placeholder="Why do you agree with — or depart from — the algorithm?">${esc(state.justifications[d.key]||"")}</textarea>
+            </div>
+          </div>
+          <div class="field hidden" data-dirfield>
+            <label for="dir-${d.key}">Optional: predicted direction of bias</label>
+            <select id="dir-${d.key}" data-dir="${d.key}">
+              <option value="">—</option><option>Favours experimental</option><option>Favours comparator</option>
+              <option>Towards null</option><option>Away from null</option><option>Unpredictable</option>
+            </select>
+          </div>
+        </div>
+      </div>`;
+    host.appendChild(sec);
+    const jsel=sec.querySelector(`[data-judge="${d.key}"]`); jsel.value=state.judgements[d.key]||"";
+    const dsel=sec.querySelector(`[data-dir="${d.key}"]`); if(dsel) dsel.value=state.directions[d.key]||"";
+  });
+  buildLights();
+}
+
+function buildLights(){
+  const rows=[...DOMAINS.map(d=>({k:d.key,label:d.num+" · "+d.short,href:"#sec-"+d.key})),{k:"overall",label:"Overall",href:"#sec-overall",overall:true}];
+  $("#lights").innerHTML=rows.map(r=>
+    `<a class="lightrow${r.overall?" overall":""}" href="${r.href}"><span class="dot" id="dot-${r.k}" aria-hidden="true">·</span><span class="nm">${r.label}</span></a>`).join("");
+}
+
+/* ---------- Recompute ---------- */
+let lastResults={};
+function recompute(){
+  /* gating */
+  document.querySelectorAll(".q").forEach(el=>{
+    const dom=DOMAINS.find(d=>d.key===el.dataset.dom);
+    const q=domainQuestions(dom).find(x=>x.id===el.dataset.qid);
+    if(!q) return;
+    const app=qApplicable(dom,q);
+    el.classList.toggle("inapplicable",!app.ok);
+    el.querySelector(".na-note").classList.toggle("hidden",app.ok);
+    const val=state.answers[el.dataset.uid]||"";
+    el.querySelectorAll(".chip").forEach(c=>{
+      const on=app.ok&&c.dataset.val===val;
+      c.classList.toggle("on",on); c.setAttribute("aria-pressed",on?"true":"false");
+    });
+  });
+
+  /* domain algorithms + effective judgements */
+  const effective={};
+  DOMAINS.forEach(d=>{
+    const res=ALGOS[d.key](state.answers); lastResults[d.key]=res;
+    const ovr=state.judgements[d.key];
+    const eff=ovr||res.j; effective[d.key]=eff;
+    setBadge("badge-"+d.key,res.j);
+    $("#why-"+d.key).innerHTML=res.why.map(w=>`<li>${esc(w)}</li>`).join("");
+    $("#ovr-"+d.key).classList.toggle("hidden",!(ovr&&res.j&&ovr!==res.j));
+    const sel=$("#jsel-"+d.key);
+    if(sel) sel.options[0].text = res.j ? "Accept algorithm suggestion ("+res.j+")" : "Accept algorithm suggestion";
+    setDot("dot-"+d.key,eff);
+  });
+
+  /* overall */
+  const ovRes=algoOverall(effective); lastResults.overall=ovRes;
+  const ovEff=state.judgements.overall||ovRes.j;
+  setBadge("ovBadge",ovRes.j);
+  $("#ovWhy").innerHTML=ovRes.why.map(w=>`<li>${esc(w)}</li>`).join("");
+  $("#ovOverrideTag").classList.toggle("hidden",!(state.judgements.overall&&ovRes.j&&state.judgements.overall!==ovRes.j));
+  $("#ovSel").options[0].text = ovRes.j ? "Accept algorithm suggestion ("+ovRes.j+")" : "Accept algorithm suggestion";
+  setDot("dot-overall",ovEff);
+  effective.overall=ovEff;
+
+  /* overall table */
+  $("#ovTable").innerHTML="<tr><th>Domain</th><th>Algorithm</th><th>Your judgement</th></tr>"+
+    DOMAINS.map(d=>`<tr><td>${d.num} — ${d.title}</td><td>${fmtJ(lastResults[d.key].j)}</td><td>${fmtJ(effective[d.key])}${state.judgements[d.key]&&lastResults[d.key].j&&state.judgements[d.key]!==lastResults[d.key].j?" <span class='override-tag'>override</span>":""}</td></tr>`).join("")+
+    `<tr><td><b>Overall</b></td><td>${fmtJ(ovRes.j)}</td><td><b>${fmtJ(ovEff)}</b></td></tr>`;
+
+  /* progress */
+  let total=0,done=0;
+  DOMAINS.forEach(d=>domainQuestions(d).forEach(q=>{
+    if(qApplicable(d,q).ok){ total++; if(state.answers[qkey(d,q)]) done++; }
+  }));
+  $("#progTxt").textContent=done+" of "+total+" applicable questions answered";
+  $("#progBar").style.width=(total?Math.round(done/total*100):0)+"%";
+
+  renderAnalysis(effective,{total,done});
+  if(!state.summaryIsEdited) $("#summaryBox").value=draftSummary(effective);
+  persist();
+}
+
+function fmtJ(j){
+  if(!j) return "<span style='color:var(--faint)'>incomplete</span>";
+  const cls=JCLASS[j];
+  return `<span class="badge ${cls}" style="padding:2px 10px; font-size:12.5px">${JLABEL[j]}</span>`;
+}
+function setBadge(id,j){
+  const el=document.getElementById(id); if(!el) return;
+  el.className="badge "+(j?JCLASS[j]:"");
+  el.textContent=j?JLABEL[j]:"incomplete";
+}
+function setDot(id,j){
+  const el=document.getElementById(id); if(!el) return;
+  el.className="dot "+(j?JCLASS[j]:"");
+  el.textContent=j==="Low"?"+":j==="Some concerns"?"−":j==="High"?"×":"·";
+}
+
+/* ---------- Analysis ---------- */
+function renderAnalysis(eff,prog){
+  const flags=[];
+  if(prog.done<prog.total) flags.push({t:(prog.total-prog.done)+" applicable signalling question"+(prog.total-prog.done>1?"s":"")+" still unanswered. The algorithms need complete answers to propose judgements.",w:1});
+  DOMAINS.forEach(d=>{
+    const ovr=state.judgements[d.key], alg=lastResults[d.key].j;
+    if(ovr&&alg&&ovr!==alg&&!state.justifications[d.key].trim())
+      flags.push({t:d.num+": you overrode the algorithm ("+alg+" → "+ovr+") without a written justification. Overrides are legitimate in RoB 2, but must always be explained.",w:1});
+  });
+  if(state.judgements.overall&&lastResults.overall.j&&state.judgements.overall!==lastResults.overall.j&&!state.justifications.overall.trim())
+    flags.push({t:"Overall: override without a written justification.",w:1});
+  const somes=["d1","d2","d3","d4","d5"].filter(k=>eff[k]==="Some concerns").length;
+  if(somes>=3&&eff.overall==="Some concerns")
+    flags.push({t:"Some concerns in "+somes+" domains: consider whether, taken together, these substantially lower your confidence in the result — RoB 2 permits judging the overall risk High in that case.",w:1});
+  const noNotes=[];
+  DOMAINS.forEach(d=>domainQuestions(d).forEach(q=>{
+    const uid=qkey(d,q);
+    if(qApplicable(d,q).ok&&state.answers[uid]&&!(state.notes[uid]||"").trim()) noNotes.push(q.id);
+  }));
+  if(noNotes.length&&prog.done>0)
+    flags.push({t:"No supporting text recorded for "+(noNotes.length>4?noNotes.slice(0,4).join(", ")+" and "+(noNotes.length-4)+" more":noNotes.join(", "))+". Good assessments quote the study to support each answer — this is what makes them checkable by a second reviewer.",w:0});
+  if(!flags.length) flags.push({t:"No issues found: all applicable questions answered"+(somes||eff.overall==="High"?"":", all domains at low risk")+", overrides justified.",ok:1});
+  $("#flags").innerHTML=flags.map(f=>`<div class="flag${f.ok?" ok":""}"><span class="fi">${f.ok?"✓":"!"}</span><span>${esc(f.t)}</span></div>`).join("");
+
+  $("#domReasons").innerHTML=DOMAINS.map(d=>{
+    const r=lastResults[d.key], ovr=state.judgements[d.key];
+    let txt=r.j?r.why.join(" "):"Incomplete — "+r.why.join(" ");
+    let head=r.j?JLABEL[r.j]:"incomplete";
+    if(ovr&&r.j&&ovr!==r.j) head=JLABEL[ovr]+" (assessor override of algorithm's "+r.j+")";
+    return `<div class="dom-reason"><b>${d.num} ${d.short} — ${esc(head)}.</b> ${esc(txt)}${ovr&&state.justifications[d.key].trim()?" <i>Assessor: "+esc(state.justifications[d.key].trim())+"</i>":""}</div>`;
+  }).join("");
+}
+
+function draftSummary(eff){
+  const i=state.info;
+  const study=i.reference||i.studyId||"This study";
+  const outcome=i.outcome?" for the outcome “"+i.outcome+"”":"";
+  const aimTxt=i.aim==="pp"?"the effect of adhering to intervention (per-protocol)":"the effect of assignment to intervention (intention-to-treat)";
+  if(!eff.overall) return study+" — assessment in progress. Complete all five domains to generate a summary paragraph.";
+  const parts=[];
+  parts.push(study+" was assessed with the Cochrane RoB 2 tool"+outcome+", considering "+aimTxt+", and was judged at "+JLABEL[eff.overall].toLowerCase()+" overall.");
+  const concerning=DOMAINS.filter(d=>eff[d.key]!=="Low");
+  if(!concerning.length){
+    parts.push("All five domains (randomization process, deviations from intended interventions, missing outcome data, measurement of the outcome, and selection of the reported result) were judged at low risk of bias.");
+  } else {
+    concerning.forEach(d=>{
+      const r=lastResults[d.key];
+      const reason=(state.justifications[d.key].trim())||(r.why[0]||"");
+      parts.push(JLABEL[eff[d.key]]+" was judged for "+d.title.replace("Bias arising from the","the").replace("Bias due to ","").replace("Bias in ","")+": "+reason.replace(/\s+\(\d\.\d[^)]*\)/g,""));
+    });
+    const lows=DOMAINS.filter(d=>eff[d.key]==="Low");
+    if(lows.length) parts.push("The remaining domain"+(lows.length>1?"s":"")+" ("+lows.map(d=>d.short.toLowerCase()).join(", ")+") "+(lows.length>1?"were":"was")+" judged at low risk of bias.");
+  }
+  if(state.justifications.overall.trim()) parts.push(state.justifications.overall.trim());
+  return parts.join(" ");
+}
+
+/* ---------- Excel export (.xlsx, built in-browser, no libraries) ---------- */
+const CRC_TABLE=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0}return t})();
+function crc32(u8){let c=0xFFFFFFFF;for(let i=0;i<u8.length;i++)c=CRC_TABLE[(c^u8[i])&0xFF]^(c>>>8);return (c^0xFFFFFFFF)>>>0}
+function zipStore(files){ /* files:[{name,text}] -> Blob (stored, no compression) */
+  const enc=new TextEncoder(); const parts=[]; const central=[]; let offset=0;
+  const now=new Date();
+  const dosTime=((now.getHours()<<11)|(now.getMinutes()<<5)|(now.getSeconds()>>1))&0xFFFF;
+  const dosDate=(((now.getFullYear()-1980)<<9)|((now.getMonth()+1)<<5)|now.getDate())&0xFFFF;
+  files.forEach(f=>{
+    const name=enc.encode(f.name), data=enc.encode(f.text), crc=crc32(data);
+    const lh=new DataView(new ArrayBuffer(30));
+    lh.setUint32(0,0x04034b50,true); lh.setUint16(4,20,true); lh.setUint16(6,0x0800,true); lh.setUint16(8,0,true);
+    lh.setUint16(10,dosTime,true); lh.setUint16(12,dosDate,true); lh.setUint32(14,crc,true);
+    lh.setUint32(18,data.length,true); lh.setUint32(22,data.length,true);
+    lh.setUint16(26,name.length,true); lh.setUint16(28,0,true);
+    parts.push(lh.buffer,name,data);
+    const ch=new DataView(new ArrayBuffer(46));
+    ch.setUint32(0,0x02014b50,true); ch.setUint16(4,20,true); ch.setUint16(6,20,true); ch.setUint16(8,0x0800,true);
+    ch.setUint16(10,0,true); ch.setUint16(12,dosTime,true); ch.setUint16(14,dosDate,true);
+    ch.setUint32(16,crc,true); ch.setUint32(20,data.length,true); ch.setUint32(24,data.length,true);
+    ch.setUint16(28,name.length,true); ch.setUint32(42,offset,true);
+    central.push(ch.buffer,name);
+    offset+=30+name.length+data.length;
+  });
+  let cdSize=0; central.forEach(b=>cdSize+=b.byteLength||b.length);
+  const eocd=new DataView(new ArrayBuffer(22));
+  eocd.setUint32(0,0x06054b50,true); eocd.setUint16(8,files.length,true); eocd.setUint16(10,files.length,true);
+  eocd.setUint32(12,cdSize,true); eocd.setUint32(16,offset,true);
+  return new Blob([...parts,...central,eocd.buffer],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+}
+const xesc=s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g,"");
+function colName(n){let s="";n++;while(n>0){const m=(n-1)%26;s=String.fromCharCode(65+m)+s;n=Math.floor((n-1)/26)}return s}
+/* cell: {v, s(style), n(numeric)} or plain string */
+function sheetXML(rows,widths){
+  let cols=widths?`<cols>${widths.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join("")}</cols>`:"";
+  const body=rows.map((row,ri)=>{
+    const cells=row.map((c,ci)=>{
+      if(c==null) return "";
+      const o=typeof c==="object"?c:{v:c};
+      const ref=colName(ci)+(ri+1), s=o.s?` s="${o.s}"`:"";
+      if(o.n) return `<c r="${ref}"${s}><v>${o.v}</v></c>`;
+      if(o.v===""||o.v==null) return o.s?`<c r="${ref}"${s}/>`:"";
+      return `<c r="${ref}" t="inlineStr"${s}><is><t xml:space="preserve">${xesc(o.v)}</t></is></c>`;
+    }).join("");
+    return `<row r="${ri+1}">${cells}</row>`;
+  }).join("");
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${cols}<sheetData>${body}</sheetData></worksheet>`;
+}
+const STYLES_XML=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="14"/><name val="Calibri"/></font></fonts>
+<fills count="6"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFDCE6EB"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFC9E7CD"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFFDEEB6"/></patternFill></fill>
+<fill><patternFill patternType="solid"><fgColor rgb="FFF4C7C9"/></patternFill></fill></fills>
+<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>
+<border><left style="thin"><color rgb="FFB9C6CC"/></left><right style="thin"><color rgb="FFB9C6CC"/></right><top style="thin"><color rgb="FFB9C6CC"/></top><bottom style="thin"><color rgb="FFB9C6CC"/></bottom><diagonal/></border></borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="8">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="1" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top"/></xf>
+<xf numFmtId="0" fontId="1" fillId="4" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top"/></xf>
+<xf numFmtId="0" fontId="1" fillId="5" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="top"/></xf>
+<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+const S={PLAIN:0,HEAD:1,CELL:2,LOW:3,SOME:4,HIGH:5,BOLD:6,TITLE:7};
+function judgeCell(j){ return {v:j?JLABEL[j]:"Incomplete", s:j==="Low"?S.LOW:j==="Some concerns"?S.SOME:j==="High"?S.HIGH:S.CELL}; }
+
+function exportXlsx(){
+  const i=state.info, eff={};
+  DOMAINS.forEach(d=>eff[d.key]=state.judgements[d.key]||lastResults[d.key].j);
+  const ovEff=state.judgements.overall||lastResults.overall.j;
+
+  /* Sheet 1: Assessment (detail) */
+  const rows=[];
+  rows.push([{v:"Cochrane RoB 2 assessment — "+(i.reference||i.studyId||"untitled study"),s:S.TITLE}]);
+  rows.push([{v:"Individually randomized, parallel-group trials · RoB 2 version of 22 August 2019 · exported "+new Date().toISOString().slice(0,10),s:S.PLAIN}]);
+  rows.push([]);
+  const info=[["Assessor",i.assessor],["Date",i.date],["Study ID",i.studyId],["Reference",i.reference],
+    ["Experimental intervention",i.experimental],["Comparator",i.comparator],["Outcome",i.outcome],
+    ["Numerical result assessed",i.result],["Sources of information",i.sources],["Weight",i.weight],
+    ["Effect of interest",i.aim==="pp"?"Effect of adhering to intervention (per-protocol)":"Effect of assignment to intervention (intention-to-treat)"]];
+  info.forEach(r=>rows.push([{v:r[0],s:S.HEAD},{v:r[1]||"",s:S.CELL}]));
+  rows.push([]);
+  DOMAINS.forEach(d=>{
+    rows.push([{v:d.num+" — "+d.title,s:S.BOLD}]);
+    rows.push([{v:"Question",s:S.HEAD},{v:"Signalling question",s:S.HEAD},{v:"Response",s:S.HEAD},{v:"Support for judgement",s:S.HEAD}]);
+    domainQuestions(d).forEach(q=>{
+      const uid=qkey(d,q), app=qApplicable(d,q);
+      rows.push([{v:q.id,s:S.CELL},{v:q.text,s:S.CELL},{v:app.ok?(state.answers[uid]?RESP_LABEL[state.answers[uid]]:""):"NA (not applicable)",s:S.CELL},{v:state.notes[uid]||"",s:S.CELL}]);
+    });
+    rows.push([{v:"",s:S.CELL},{v:"Algorithm result",s:S.HEAD},judgeCell(lastResults[d.key].j),{v:lastResults[d.key].why.join(" "),s:S.CELL}]);
+    rows.push([{v:"",s:S.CELL},{v:"Assessor's judgement",s:S.HEAD},judgeCell(eff[d.key]),{v:state.justifications[d.key]||"",s:S.CELL}]);
+    if(state.directions[d.key]) rows.push([{v:"",s:S.CELL},{v:"Predicted direction of bias",s:S.HEAD},{v:state.directions[d.key],s:S.CELL},{v:"",s:S.CELL}]);
+    rows.push([]);
+  });
+  rows.push([{v:"Overall risk of bias",s:S.BOLD}]);
+  rows.push([{v:"",s:S.CELL},{v:"Algorithm result",s:S.HEAD},judgeCell(lastResults.overall.j),{v:lastResults.overall.why.join(" "),s:S.CELL}]);
+  rows.push([{v:"",s:S.CELL},{v:"Assessor's overall judgement",s:S.HEAD},judgeCell(ovEff),{v:state.justifications.overall||"",s:S.CELL}]);
+  if(state.directions.overall) rows.push([{v:"",s:S.CELL},{v:"Predicted direction of bias",s:S.HEAD},{v:state.directions.overall,s:S.CELL},{v:"",s:S.CELL}]);
+  rows.push([]);
+  rows.push([{v:"Summary paragraph",s:S.BOLD}]);
+  rows.push([{v:$("#summaryBox").value,s:S.CELL},null,null,null]);
+  const sheet1=sheetXML(rows,[16,72,26,60]);
+
+  /* Sheet 2: Summary (one row, template-style) */
+  const head=["Unique ID","Assessor","Study ID","Reference","Experimental","Comparator","Outcome","Result","Effect of interest","Weight",
+    "Randomization process","Comment (D1)","Deviations from intended interventions","Comment (D2)","Missing outcome data","Comment (D3)",
+    "Measurement of the outcome","Comment (D4)","Selection of the reported result","Comment (D5)","Overall Bias","Comment (Overall)"];
+  const dcomment=k=>state.justifications[k]||lastResults[k].why.join(" ");
+  const srow=[i.studyId||"1",i.assessor,i.studyId,i.reference,i.experimental,i.comparator,i.outcome,i.result,
+    i.aim==="pp"?"Adhering to intervention (per-protocol)":"Assignment to intervention (intention-to-treat)",i.weight,
+    judgeCell(eff.d1),{v:dcomment("d1"),s:S.CELL},judgeCell(eff.d2),{v:dcomment("d2"),s:S.CELL},judgeCell(eff.d3),{v:dcomment("d3"),s:S.CELL},
+    judgeCell(eff.d4),{v:dcomment("d4"),s:S.CELL},judgeCell(eff.d5),{v:dcomment("d5"),s:S.CELL},judgeCell(ovEff),{v:state.justifications.overall||lastResults.overall.why.join(" "),s:S.CELL}];
+  const sheet2=sheetXML([head.map(h=>({v:h,s:S.HEAD})),srow.map(c=>typeof c==="object"&&c!==null?c:{v:c,s:S.CELL})],
+    [10,14,10,26,16,16,26,22,30,8,18,40,18,40,18,40,18,40,18,40,18,40]);
+
+  const files=[
+    {name:"[Content_Types].xml",text:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`},
+    {name:"_rels/.rels",text:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
+    {name:"xl/workbook.xml",text:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Assessment" sheetId="1" r:id="rId1"/><sheet name="Summary" sheetId="2" r:id="rId2"/></sheets></workbook>`},
+    {name:"xl/_rels/workbook.xml.rels",text:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`},
+    {name:"xl/styles.xml",text:STYLES_XML},
+    {name:"xl/worksheets/sheet1.xml",text:sheet1},
+    {name:"xl/worksheets/sheet2.xml",text:sheet2}
+  ];
+  const blob=zipStore(files);
+  const fn="RoB2_"+((i.studyId||i.reference||"assessment").replace(/[^\w\-]+/g,"_").slice(0,40))+"_"+new Date().toISOString().slice(0,10)+".xlsx";
+  download(blob,fn);
+}
+
+function download(blob,name){
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},500);
+}
+
+/* ---------- Persistence ---------- */
+let persistT=null;
+function persist(){
+  clearTimeout(persistT);
+  persistT=setTimeout(()=>{ try{localStorage.setItem(LSKEY,JSON.stringify(state))}catch(e){} },300);
+}
+function restore(){
+  try{
+    const raw=localStorage.getItem(LSKEY);
+    if(raw){ const s=JSON.parse(raw); state=Object.assign(blankState(),s);
+      state.info=Object.assign(blankState().info,s.info||{});
+      state.prefs=Object.assign({learn:true,dir:false},s.prefs||{}); }
+  }catch(e){}
+}
+
+/* ---------- Wiring ---------- */
+function syncInfoFields(){
+  document.querySelectorAll("[data-info]").forEach(el=>{ el.value=state.info[el.dataset.info]||""; });
+  document.querySelectorAll('input[name="aim"]').forEach(r=>r.checked=r.value===state.info.aim);
+  $("#learnMode").checked=state.prefs.learn;
+  $("#dirMode").checked=state.prefs.dir;
+  $("#ovSel").value=state.judgements.overall||"";
+  $("#ovJust").value=state.justifications.overall||"";
+  $("#ovDir").value=state.directions.overall||"";
+  applyPrefs();
+}
+function applyPrefs(){
+  document.body.classList.toggle("learn-off",!state.prefs.learn);
+  document.querySelectorAll("[data-dirfield]").forEach(el=>el.classList.toggle("hidden",!state.prefs.dir));
+}
+
+document.addEventListener("click",e=>{
+  const chip=e.target.closest(".chip");
+  if(chip){
+    const uid=chip.dataset.uid, val=chip.dataset.val;
+    if(state.answers[uid]===val) delete state.answers[uid]; else state.answers[uid]=val;
+    state.summaryIsEdited=false;
+    recompute();
+  }
+});
+document.addEventListener("input",e=>{
+  const t=e.target;
+  if(t.dataset&&t.dataset.info!==undefined&&t.dataset.info!==""){ state.info[t.dataset.info]=t.value; state.summaryIsEdited=false; recompute(); return; }
+  if(t.dataset&&t.dataset.note){ state.notes[t.dataset.note]=t.value; persist(); return; }
+  if(t.dataset&&t.dataset.just){ state.justifications[t.dataset.just]=t.value; state.summaryIsEdited=false; recompute(); return; }
+  if(t.id==="ovJust"){ state.justifications.overall=t.value; state.summaryIsEdited=false; recompute(); return; }
+  if(t.id==="summaryBox"){ state.summaryIsEdited=true; state.summaryEdited=t.value; persist(); return; }
+});
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.name==="aim"){ state.info.aim=t.value; state.summaryIsEdited=false; buildDomains(); syncInfoFields(); recompute(); return; }
+  if(t.dataset&&t.dataset.judge){ state.judgements[t.dataset.judge]=t.value; state.summaryIsEdited=false; recompute(); return; }
+  if(t.id==="ovSel"){ state.judgements.overall=t.value; state.summaryIsEdited=false; recompute(); return; }
+  if(t.dataset&&t.dataset.dir){ state.directions[t.dataset.dir]=t.value; persist(); return; }
+  if(t.id==="ovDir"){ state.directions.overall=t.value; persist(); return; }
+  if(t.id==="learnMode"){ state.prefs.learn=t.checked; applyPrefs(); persist(); return; }
+  if(t.id==="dirMode"){ state.prefs.dir=t.checked; applyPrefs(); persist(); return; }
+});
+
+$("#btnXlsx").addEventListener("click",exportXlsx);
+$("#btnPrint").addEventListener("click",()=>window.print());
+$("#btnSave").addEventListener("click",()=>{
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+  download(blob,"RoB2_"+((state.info.studyId||state.info.reference||"assessment").replace(/[^\w\-]+/g,"_").slice(0,40))+".json");
+});
+$("#btnLoad").addEventListener("click",()=>$("#fileIn").click());
+$("#fileIn").addEventListener("change",e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ try{
+      const s=JSON.parse(rd.result);
+      if(!s||typeof s!=="object"||!s.info) throw new Error("bad");
+      state=Object.assign(blankState(),s);
+      state.info=Object.assign(blankState().info,s.info||{});
+      buildDomains(); syncInfoFields(); recompute();
+      if(state.summaryIsEdited) $("#summaryBox").value=state.summaryEdited||"";
+    }catch(err){ alert("That file doesn't look like a saved RoB 2 Workbench assessment (.json)."); } };
+  rd.readAsText(f); e.target.value="";
+});
+$("#btnReset").addEventListener("click",()=>{
+  if(!confirm("Start a new assessment? Unsaved answers will be cleared (download a .json first if you want to keep this one).")) return;
+  state=blankState(); localStorage.removeItem(LSKEY);
+  buildDomains(); syncInfoFields(); recompute();
+});
+$("#btnRegen").addEventListener("click",()=>{ state.summaryIsEdited=false; recompute(); });
+$("#btnCopy").addEventListener("click",async()=>{
+  try{ await navigator.clipboard.writeText($("#summaryBox").value); $("#copyHint").textContent="Copied."; }
+  catch(e){ $("#summaryBox").select(); document.execCommand("copy"); $("#copyHint").textContent="Copied."; }
+  setTimeout(()=>$("#copyHint").textContent="",2000);
+});
+
+/* ---------- Boot ---------- */
+restore();
+buildDomains();
+syncInfoFields();
+recompute();
+if(state.summaryIsEdited) $("#summaryBox").value=state.summaryEdited||"";
+if(!state.info.date){ state.info.date=new Date().toISOString().slice(0,10); $("#f_date").value=state.info.date; }
+</script>
